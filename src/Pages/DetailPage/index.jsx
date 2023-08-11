@@ -9,29 +9,33 @@ import { Balance } from '../../assets/Balance'
 import { Vector } from '../../assets/Vector'
 import { Type } from '../../components/Type'
 import { BaseStat } from '../../components/BaseStat';
-import DamageRelations from '../../components/DamageRelations';
+import DamageModal from '../../components/DamageModal';
 
 const DetailPage = () => {
   const [pokemon, setPokemon] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const params = useParams();
-  const pokemonID = params.id; 
+  const pokemonID = params.id;   
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const baseUrl = `https://pokeapi.co/api/v2/pokemon/`;
   useEffect(() => {
-    fetchPokemonData();    
-  }, [])
+    setIsLoading(true)
+    fetchPokemonData(pokemonID);    
+    // 페이지의 경로가 바뀔 때마다 리렌더링
+  }, [pokemonID])
 
-  async function fetchPokemonData() {
-    const url = `${baseUrl}${pokemonID}`
+  async function fetchPokemonData(id) {
+    const url = `${baseUrl}${id}`
 
     try {
       // data를 pokemonData라는 이름으로 갖고 오기
       const { data: pokemonData } = await axios.get(url);
       if (pokemonData) {
         // pokemonData에서 아래 데이터들을 갖고 오기
-        const { name, id, types, weight, height, stats, abilities } = pokemonData;
+        const { name, id, types, weight, height, stats, abilities, sprites } = pokemonData;
         const nextAndPreviousPokemon = await getNextnextAndPreviousPokemon(id);
-        
         const DamageRelations = await Promise.all(
           types.map(async (i) => {
             const type = await axios.get(i.type.url);
@@ -50,19 +54,57 @@ const DetailPage = () => {
           next: nextAndPreviousPokemon.next,
           abilities: formatPokemonAbilities(abilities),
           stats: formatPokemonStats(stats),
-          DamageRelations
+          DamageRelations,
+          sprites: formatPokemonSprites(sprites),
+          description: await getPokemonDescription(id)
         }
-
 
         setPokemon(formattedPokemonData);
         setIsLoading(false);
+
       }
     } catch (error) {
       console.error(error)
       setIsLoading(false);
-
-      
     }
+  }
+
+  // PokemonDescription filter & Formatting
+  const filterAndFormatDescription = (flavorText) => {
+
+    const koreanDescription = flavorText
+    // 한국어 Description만 Filter
+    ?.filter((text) => text.language.name === "ko")
+    // 공백으로 바꿔 주기
+    .map((text) => text.flavor_text.replace(/\r|n|\f/g, ''))
+    return koreanDescription;
+  }
+
+  // PokemonDescription 데이터 갖고 오기
+  const getPokemonDescription = async (id) => {
+    const url = `https://pokeapi.co/api/v2/pokemon-species/${id}/`
+    const { data : pokemonSpecies } = await axios.get(url);
+    const descriptions = filterAndFormatDescription(pokemonSpecies.flavor_text_entries);
+    return descriptions[Math.floor(Math.random() * descriptions.length)]
+  }
+
+
+
+
+
+  // Sprites formatting
+  const formatPokemonSprites = (sprites) => {
+
+    const newSprites = {...sprites};
+
+    (Object.keys(newSprites).forEach(key => {
+      // newSprites[key]의 Type이 string이 아니면?
+      if(typeof newSprites[key] !== 'string') {
+        // newSprites[key]를 삭제
+          delete newSprites[key];
+        }
+      }));
+      return Object.values(newSprites)
   }
 
   // filter를 이용해 ability 생성
@@ -173,6 +215,7 @@ const DetailPage = () => {
                         loading="lazy"
                         alt={pokemon.name}
                         className={`object-contain h-full`}
+                        onClick={() => setIsModalOpen(true)}
                       />
                     </div>
                   </section>
@@ -233,27 +276,34 @@ const DetailPage = () => {
                             ))}
                           </tbody>
                         </table>
-  
-  
-                      </div>
+                  </div>
 
-                      {pokemon.DamageRelations && (
-                        <div className='w-10/12'>
-                          <h2 className={`text-base text-center font-semibold ${text}`}>
-                              <DamageRelations 
-                                damages = {pokemon.DamageRelations}
-                              />
-                            </h2>
-                            데미지
-                        </div>
+                      <h2 className={`text-base font-semibold ${text}`}>
+                          설명
+                      </h2>
+                      <p className='text-md leading-4 font-sans text-zinc-200 max-w-[30rem] text-center'>
+                        {pokemon.description}
+                      </p>
 
-                      )}
-
+                  <div className='flex my-8 flex-wrap justify-center'>
+                    {pokemon.sprites.map((url, index) => (
+                      <img
+                        key={index}
+                        src={url}
+                        alt='sprites'                      
+                      >
+                      </img>
+                    ))}
+                  </div>
 
 
                   </section>
-
-        </div>
+            </div>
+        {isModalOpen && <DamageModal
+                        setIsModalOpen ={setIsModalOpen}
+                        damages={pokemon.DamageRelations}
+                        />
+                        }
       </article>
 
       )

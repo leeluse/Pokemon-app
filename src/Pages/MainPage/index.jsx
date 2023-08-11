@@ -8,6 +8,8 @@ function MainPage() {
   const [allPokemons, setAllpokemons] = useState([])
   // 실제로 리스트로 보여주는 포켓몬 데이터를 갖고 있는 State
   const [displayedPokemons, setDisplayedPokemons] = useState([])
+
+
   // 한 번에 보여 주는 포켓몬 State
   const limitNum = 20;
   const url = `https://pokeapi.co/api/v2/pokemon/?limit=1008&offset=0`;
