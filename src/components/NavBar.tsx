@@ -1,25 +1,28 @@
 import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom';
 import { styled } from 'styled-components'
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
+import {User, getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
 import app from '../firebase';
+import storage from '../utils/storage';
 
-const initialUserData = localStorage.getItem("userData") ?
-  JSON.parse(localStorage.getItem('userData')) : {};
+
+const initialUserData = storage.get<User>('userData');
+
 const NavBar = () => {
 
   // firebase app을 호출
   const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
   const navigate = useNavigate();
-  const [userData, setUserData] = useState(initialUserData);
+  const [userData, setUserData] = useState< User | null >(initialUserData);
 
 
   const handleAuth = () => {
     signInWithPopup(auth,  provider)
     .then(result => {
       setUserData(result.user);
-      localStorage.setItem("userData", JSON.stringify(result.user));
+      storage.set("userData", result.user);
+      // localStorage.setItem("userData", JSON.stringify(result.user));
 
     })
     .catch (error =>{
@@ -69,12 +72,15 @@ const NavBar = () => {
   const handleLogout = () => {
     signOut(auth)
     .then(() => {
-      setUserData({})
+      storage.remove('userData');
+      setUserData(null);
     })
     .catch(error => {
       alert(error.message);
     })
   }
+
+  
  
 
 
@@ -95,10 +101,14 @@ const NavBar = () => {
       >로그인</Login>
     ) : 
       <SignOut>
+        {userData?.photoURL
+          &&
         <UserImg 
           src={userData.photoURL}
           alt="user Photo"
         />
+        }
+        
       <Dropdown>
         <span onClick={handleLogout}>Sign Out</span>
       </Dropdown>
@@ -181,14 +191,15 @@ width: 50px;
 margin-top: 4px;
   
 `
-const NavWrapper = styled.nav`
+const NavWrapper = styled.nav<{ show: boolean }>`
 position: fixed;
 top: 0;
 left: 0;
 right: 0;
 height: 70px;
 display: flex;
-background-color: ${props => props.show ? "#090b13" : "transparent"};
+background-color: ${props => 
+  props.show ? "#090b13" : "transparent"};
 justify-content: space-between;
 align-items: center;
 padding: 0 36px;

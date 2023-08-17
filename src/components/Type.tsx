@@ -1,4 +1,11 @@
-export const Type = ({ type, damageValue }) => {
+
+interface TypeProps {
+  type: string;
+  damageValue?: string;
+}
+
+
+export const Type = ({ type, damageValue }: TypeProps) => {
   const gb = `bg-${type}`
 
 
