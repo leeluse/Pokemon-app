@@ -1,4 +1,5 @@
 # Pokemon-app
 React Practice Project
 
-react-poke-app-2233c.web.app
+Pokemon React App for Practice
+https://react-poke-app-2233c.firebaseapp.com/login
